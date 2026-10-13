@@ -1,0 +1,31 @@
+PrintToImage - what the files in this folder are
+================================================
+
+You do not need to open anything in this folder. Use the files one level up:
+  Install PrintToImage.bat, Open PrintToImage Settings.bat, Uninstall PrintToImage.bat and README.txt.
+
+The installer copies these files to C:\Program Files\PrintToImage.
+
+Programs
+  PrintToImage.exe          The PrintToImage service: receives the print jobs and saves them as PDF/JPG/PNG.
+                            Runs in the background as a Windows service. Also has troubleshooting commands
+                            (see README.txt, section 7).
+  libSkiaSharp.dll          Drawing library used by PrintToImage.exe. Must stay next to it.
+  PrintToImageSettings.exe  The settings app (opened by "Open PrintToImage Settings.bat" and the Start menu).
+  SendTestPrint.exe         Test tool: sends a test print job to PrintToImage, like a PC would.
+
+Setup scripts (run by the .bat files and by the settings app)
+  install.ps1               Installs or upgrades: service, shared printer, folders, permissions, firewall, shortcuts.
+  uninstall.ps1             Removes PrintToImage (keeps the saved PDF/JPG files).
+  shared-printer.ps1        Creates, repairs or removes the shared printer \\SERVER\PrintToImage.
+
+Settings
+  settings.sample.json      Default settings. On the first installation it is copied to
+                            C:\ProgramData\PrintToImage\settings.json, which is the file actually used
+                            (change it with the settings app).
+
+License
+  LICENSE.txt               PrintToImage's license: free for personal and noncommercial use; businesses need a
+                            commercial license (see COMMERCIAL.md on GitHub). No warranty.
+  THIRD-PARTY-NOTICES.txt   Licenses of the open-source parts built into the programs (.NET, SkiaSharp).
+                            All free, also commercially; they only ask that these notices are included.

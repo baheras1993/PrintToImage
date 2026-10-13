@@ -1,0 +1,51 @@
+{
+  "ListenAddress": "0.0.0.0",
+  "RawPort": 9100,
+  "EnableLpd": false,
+  "LpdPort": 515,
+  "ReceiveIdleTimeoutSeconds": 300,
+  "MaxJobSizeMB": 1024,
+  "MaxConcurrentConversions": 2,
+
+  "OutputRoot": "D:\\PrintToImage\\Output",
+  "OutputFormat": "pdf",
+  "DeviceOutputFormat": {},
+  "PdfOneFilePerPage": false,
+  "DevicePdfOneFilePerPage": {},
+  "JpgDpi": 300,
+  "JpgQuality": 90,
+  "FileNameTemplate": "{name}",
+  "EmrAccount": "",
+  "FirewallRemoteAddress": "LocalSubnet",
+  "SharedPrinterName": "PrintToImage",
+  "SharedPrinterPaperSize": "A4",
+  "UnassignedFolderName": "Unassigned",
+  "UnknownDeviceFolderName": "UnknownDevice",
+  "FailedFolderName": "Failed",
+
+  "Devices": {
+    "RECEPTION-PC": "Reception",
+    "LAB-PC": "Lab",
+    "192.168.1.22": "Warehouse"
+  },
+
+  "FileNumberRegex": "\\d+",
+  "StripPatterns": [
+    "^Microsoft (Office )?(Word|Excel|PowerPoint|Publisher|Visio) - ",
+    "^(Adobe )?Acrobat( Reader)?( DC)? - ",
+    " - (Adobe )?Acrobat( Reader)?( DC)?$",
+    "^(Notepad|WordPad|Paint) - ",
+    " - (Notepad|WordPad|Paint)$"
+  ],
+  "StripExtensions": [ ".pdf", ".doc", ".docx", ".rtf", ".txt", ".xls", ".xlsx", ".ppt", ".pptx", ".xps", ".oxps",
+                       ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff", ".htm", ".html", ".xml", ".dcm", ".ps", ".prn" ],
+  "FallbackCodePage": 0,
+
+  "RenderTimeoutSeconds": 300,
+
+  "ArchiveFolder": "C:\\ProgramData\\PrintToImage\\archive",
+  "ArchiveRetentionDays": 30,
+  "LogFolder": "C:\\ProgramData\\PrintToImage\\logs",
+  "LogRetentionDays": 90,
+  "WorkFolder": "C:\\ProgramData\\PrintToImage\\work"
+}

@@ -1,0 +1,4 @@
+# Print jobs are byte-exact test data: never change their line endings.
+*.prn binary
+# cmd.exe needs Windows line endings.
+*.bat text eol=crlf

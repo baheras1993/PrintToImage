@@ -1,0 +1,10 @@
+<Project>
+  <!-- Shown in the programs' file properties (right-click > Properties > Details). -->
+  <PropertyGroup>
+    <Authors>baheras1993</Authors>
+    <Company>baheras1993</Company>
+    <Copyright>Copyright (c) 2026 baheras1993. Free for noncommercial use; commercial use needs a license.</Copyright>
+    <PackageLicenseExpression>PolyForm-Noncommercial-1.0.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/baheras1993/PrintToImage</RepositoryUrl>
+  </PropertyGroup>
+</Project>
