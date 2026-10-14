@@ -10,7 +10,7 @@ distributed; this file does that.
 
   Component                                              License
   -----------------------------------------------------  --------------------------------------------
-  .NET 8.0.31 runtime (built into the .exe files)          MIT (.NET Foundation and Contributors)
+  .NET 8.0.32 runtime (built into the .exe files)          MIT (.NET Foundation and Contributors)
   Windows Desktop runtime (settings app)                 MIT (.NET Foundation and Contributors)
   Microsoft.Extensions.Hosting / Logging / WindowsServices,
   System.ServiceProcess.ServiceController                MIT (.NET Foundation and Contributors)
@@ -28,7 +28,7 @@ The complete license texts and notices follow.
 
 
 ===============================================================================
-.NET runtime and libraries (Microsoft.NETCore.App 8.0.31, Microsoft.WindowsDesktop.App,
+.NET runtime and libraries (Microsoft.NETCore.App 8.0.32, Microsoft.WindowsDesktop.App,
 Microsoft.Extensions.*, System.ServiceProcess.ServiceController)
 ===============================================================================
 

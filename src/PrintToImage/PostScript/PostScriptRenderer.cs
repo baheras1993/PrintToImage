@@ -10,6 +10,8 @@ public sealed class RenderResult
     /// <summary>Output files in page order (one PDF, or one JPG per page).</summary>
     public List<string> Files = new();
     public List<string> Messages = new();
+    /// <summary>The text painted on the pages (empty for a job received as PDF).</summary>
+    public string Text = "";
     /// <summary>Set when the job did not complete; pages rendered before the error may still exist.</summary>
     public string? Error;
 }
@@ -162,6 +164,7 @@ public static class PostScriptRenderer
                 result.Error = "Rendering timed out.";
             }
             result.Pages = device.PagesEmitted;
+            result.Text = device.Text;
             if (result.Pages == 0 && result.Error is null) result.Error = "The job produced no pages.";
             device.Finish(log);
             if (pdf is not null) result.Files.Add(outputPath);

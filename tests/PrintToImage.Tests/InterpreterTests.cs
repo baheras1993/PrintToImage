@@ -35,6 +35,16 @@ public class InterpreterTests
 
     private static string Top(string ps) => Run(ps).Stack.Last();
 
+    [Fact]
+    public void CollectsThePaintedTextNotMeasuredText()
+    {
+        var dev = new PageDevice(new CaptureSink(), 72, 300, 300);
+        new Interpreter(dev).RunJob(new BytesSource(Encoding.Latin1.GetBytes(
+            "/Helvetica findfont 10 scalefont setfont 10 250 moveto (ID:) show 40 250 moveto (D1935) show "
+            + "(hidden) stringwidth pop pop showpage 10 250 moveto (Page 2) show showpage")));
+        Assert.Equal("ID: D1935\nPage 2\n", dev.Text);
+    }
+
     [Theory]
     [InlineData("3 4 add", "7")]
     [InlineData("10 3 idiv", "3")]

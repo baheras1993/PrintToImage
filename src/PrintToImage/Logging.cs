@@ -77,6 +77,7 @@ public sealed class JobRecord
     public string? Error;
     public string? ClientComputer;   // jobs through the shared printer
     public string? ClientUser;
+    public string? PageNumber;       // the number found on the page (PageNumberRegex)
 }
 
 /// <summary>Appends job records to logs\jobs-yyyy-MM.csv (open it in Excel to search jobs).</summary>
@@ -84,7 +85,7 @@ public sealed class JobLog
 {
     private readonly string _folder;
     private readonly object _lock = new();
-    private static readonly string Header = "Time,JobId,Protocol,SenderIP,Device,RawJobName,NameSource,CleanName,FileNumber,Status,OutputFiles,Pages,Bytes,DurationMs,ArchiveFile,Error,ClientComputer,ClientUser";
+    private static readonly string Header = "Time,JobId,Protocol,SenderIP,Device,RawJobName,NameSource,CleanName,FileNumber,Status,OutputFiles,Pages,Bytes,DurationMs,ArchiveFile,Error,ClientComputer,ClientUser,PageNumber";
 
     public JobLog(string folder)
     {
@@ -98,7 +99,7 @@ public sealed class JobLog
         {
             r.Time.ToString("yyyy-MM-dd HH:mm:ss"), r.JobId, r.Protocol, r.SenderIp, r.Device, r.RawJobName, r.NameSource, r.CleanName,
             r.FileNumber, r.Status, string.Join(" | ", r.OutputFiles), r.Pages.ToString(), r.Bytes.ToString(), r.DurationMs.ToString(),
-            r.ArchiveFile, r.Error, r.ClientComputer, r.ClientUser,
+            r.ArchiveFile, r.Error, r.ClientComputer, r.ClientUser, r.PageNumber,
         };
         var line = string.Join(",", fields.Select(Csv));
         var path = Path.Combine(_folder, $"jobs-{r.Time:yyyy-MM}.csv");

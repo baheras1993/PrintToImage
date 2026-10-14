@@ -25,6 +25,25 @@ public sealed class PageDevice : IDisposable
     /// <summary>PDF output: text is drawn with embedded subset fonts (built when the job ends).</summary>
     public bool VectorText => Embedder is not null;
     public Fonts.FontEmbedder? Embedder { get; }
+
+    /// <summary>The text painted on the pages, in drawing order (for finding a file number printed on the page).
+    /// Strings drawn separately are separated by a space, pages by a new line. Capped at <see cref="MaxText"/>.</summary>
+    public string Text => _text.ToString();
+    public const int MaxText = 200_000;
+    private readonly System.Text.StringBuilder _text = new();
+    internal void AddText(int codePoint)
+    {
+        if (_text.Length >= MaxText || codePoint <= 0 || codePoint > 0x10FFFF || (codePoint >= 0xD800 && codePoint <= 0xDFFF)) return;
+        if (codePoint < 0x20) { TextBreak(); return; }
+        _text.Append(char.ConvertFromUtf32(codePoint));
+    }
+    internal void TextBreak(char c = ' ')
+    {
+        if (_text.Length == 0 || _text.Length >= MaxText) return;
+        char last = _text[^1];
+        if (last == '\n' || (last == ' ' && c == ' ')) return;
+        if (last == ' ' && c == '\n') _text[^1] = '\n'; else _text.Append(c);
+    }
     private readonly IPageSink _sink;
     private SKPictureRecorder? _recorder;
     private SKCanvas? _canvas;
@@ -103,6 +122,7 @@ public sealed class PageDevice : IDisposable
         _recorder = null;
         _canvas = null;
         PagesEmitted++;
+        TextBreak('\n');
     }
 
     /// <summary>Called once after the job: builds embedded fonts, then lets the sink write its output.</summary>

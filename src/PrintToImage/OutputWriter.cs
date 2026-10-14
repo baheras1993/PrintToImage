@@ -12,15 +12,23 @@ public static class OutputWriter
         return s.Length == 0 ? "_" : s;
     }
 
-    /// <summary>Placeholders: {name} {number} {device} {date} {time}.</summary>
-    public static string ApplyTemplate(string template, ResolvedName r, string device, DateTime received)
+    private const char Empty = '\u0001';
+    private static readonly System.Text.RegularExpressions.Regex EmptyPart = new(
+        "^\u0001[ _-]*|[ _-]*\u0001$|\u0001[ _-]?", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>Placeholders: {name} {number} {page} {device} {date} {time}. A part that is empty
+    /// ("{page}_{name}" without a number on the page) takes one separator with it: "IOL-SRK-T", not "_IOL-SRK-T".</summary>
+    public static string ApplyTemplate(string template, ResolvedName r, string device, DateTime received, string? page = null)
     {
+        static string V(string? v) => string.IsNullOrEmpty(v) ? Empty.ToString() : v.Replace(Empty, '_');
         var s = template
-            .Replace("{name}", r.CleanName ?? "", StringComparison.OrdinalIgnoreCase)
-            .Replace("{number}", r.FileNumber ?? "", StringComparison.OrdinalIgnoreCase)
-            .Replace("{device}", device, StringComparison.OrdinalIgnoreCase)
+            .Replace("{name}", V(r.CleanName), StringComparison.OrdinalIgnoreCase)
+            .Replace("{number}", V(r.FileNumber), StringComparison.OrdinalIgnoreCase)
+            .Replace("{page}", V(page), StringComparison.OrdinalIgnoreCase)
+            .Replace("{device}", V(device), StringComparison.OrdinalIgnoreCase)
             .Replace("{date}", received.ToString("yyyyMMdd"), StringComparison.OrdinalIgnoreCase)
             .Replace("{time}", received.ToString("HHmmss"), StringComparison.OrdinalIgnoreCase);
+        s = EmptyPart.Replace(s, "").Replace(Empty.ToString(), "");
         s = SafeFolderName(s);
         return s.Length > JobNameResolver.MaxNameLength ? s[..JobNameResolver.MaxNameLength].TrimEnd('.', ' ') : s;
     }

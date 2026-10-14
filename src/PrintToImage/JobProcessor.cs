@@ -140,12 +140,17 @@ public sealed class JobProcessor : BackgroundService
                 return;
             }
 
-            // 4b. Place the output. Unassigned when there is no name or no file number — never guess.
+            // 4a'. A file number printed on the page (devices that name the print after the report).
+            string? pageNumber = _s.PageNumber is { } prx && result.Text.Length > 0 ? JobNameResolver.ExtractFileNumber(result.Text, prx) : null;
+            rec.PageNumber = pageNumber;
+
+            // 4b. Place the output. Unassigned when there is no file number in the name or on the page — never guess.
             string folder, name;
-            if (resolved.IsAssigned && !job.Incomplete)
+            if ((resolved.IsAssigned || pageNumber is not null) && !job.Incomplete)
             {
                 folder = Path.Combine(_s.OutputRoot, device);
-                name = OutputWriter.ApplyTemplate(_s.FileNameTemplate, resolved, device, job.ReceivedAt);
+                name = OutputWriter.ApplyTemplate(_s.FileNameTemplate, resolved, device, job.ReceivedAt, pageNumber);
+                if (name == "_") name = $"{pageNumber}_{job.ReceivedAt:yyyyMMdd_HHmmss}";   // a template of only parts that are empty
                 rec.Status = "OK";
             }
             else
@@ -154,12 +159,14 @@ public sealed class JobProcessor : BackgroundService
                 name = $"{device}_{job.ReceivedAt:yyyyMMdd_HHmmss}";
                 rec.Status = "UNASSIGNED";
                 rec.Error = job.Incomplete ? "Job was not received completely."
-                    : resolved.RawName is null ? "No job name found." : "No file number found in the job name.";
+                    : resolved.RawName is null ? "No job name found."
+                    : _s.PageNumber is not null ? "No file number found in the job name or on the page." : "No file number found in the job name.";
             }
             rec.OutputFiles.AddRange(OutputWriter.Place(result.Files, folder, name, "." + format, copy: false));
             rec.Pages = result.Pages > 0 ? result.Pages : rec.OutputFiles.Count;
-            _log.LogInformation("Job {Id} from {Sender} ({Device}): \"{Raw}\" -> file number {Num} -> {Files} ({Pages} page(s), {Status}).",
-                job.Id, job.ClientComputer ?? job.SenderIp, device, resolved.RawName, resolved.FileNumber ?? "(none)", string.Join(", ", rec.OutputFiles), rec.Pages, rec.Status);
+            _log.LogInformation("Job {Id} from {Sender} ({Device}): \"{Raw}\" -> file number {Num}, on the page {Page} -> {Files} ({Pages} page(s), {Status}).",
+                job.Id, job.ClientComputer ?? job.SenderIp, device, resolved.RawName, resolved.FileNumber ?? "(none)", pageNumber ?? "(none)",
+                string.Join(", ", rec.OutputFiles), rec.Pages, rec.Status);
         }
         catch (Exception e)
         {

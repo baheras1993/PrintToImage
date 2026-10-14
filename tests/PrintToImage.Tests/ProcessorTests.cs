@@ -56,6 +56,38 @@ public class ProcessorTests : IDisposable
         Assert.Contains(",12345,OK,", csv);
     }
 
+    /// <summary>A device that names the print after the report (IOLMaster: "IOL-SRK-T") and prints the ID on the page.</summary>
+    private const string IolPage = "/Helvetica findfont 10 scalefont setfont 72 760 moveto (Last name: ID: Date of birth:) show "
+        + "72 745 moveto (D1935) show 72 730 moveto (K1: 43.95 D K2: 44.29 D) show showpage\n";
+
+    [Fact]
+    public void FileNumberPrintedOnThePageNamesAndFilesTheJob()
+    {
+        _s.PageNumberRegex = @"\b[A-Za-z]{1,2}\d{3,7}\b";
+        _s.FileNameTemplate = "{page}_{name}_{date}";
+        _s.Validate();
+        _processor.Process(Spool("%!PS-Adobe-3.0\n%%Title: IOL-SRK-T\n" + IolPage));
+        var files = Directory.GetFiles(Path.Combine(_s.OutputRoot, "OCT"));
+        Assert.Single(files);
+        Assert.Equal($"D1935_IOL-SRK-T_{DateTime.Now:yyyyMMdd}.pdf", Path.GetFileName(files[0]));
+        var csv = File.ReadAllText(Directory.GetFiles(_s.LogFolder, "jobs-*.csv").Single());
+        Assert.Contains(",D1935", csv);
+    }
+
+    [Fact]
+    public void PageWithoutNumberKeepsTheOldRulesAndDropsTheEmptyPart()
+    {
+        _s.PageNumberRegex = @"\b[A-Za-z]{1,2}\d{3,7}\b";
+        _s.FileNameTemplate = "{page}_{name}";
+        _s.Validate();
+        // no number in the title nor on the page (K1 / K2 are too short) → Unassigned, as before
+        _processor.Process(Spool("%!PS-Adobe-3.0\n%%Title: MMT-Full\n/Helvetica findfont 10 scalefont setfont 72 700 moveto (K1: 42.99 D) show showpage\n"));
+        Assert.Single(Directory.GetFiles(Path.Combine(_s.OutputRoot, "Unassigned")));
+        // a number in the title, none on the page → named without the empty {page} part
+        _processor.Process(Spool("%!PS-Adobe-3.0\n%%Title: Scan 4242\n" + Page));
+        Assert.Equal("Scan 4242.pdf", Path.GetFileName(Directory.GetFiles(Path.Combine(_s.OutputRoot, "OCT")).Single()));
+    }
+
     [Fact]
     public void JobWithoutFileNumberIsUnassigned()
     {

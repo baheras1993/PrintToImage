@@ -25,8 +25,9 @@ No Ghostscript. No software on the client PCs. No "Save as" dialog.
 - **One printer for the whole network.** Install it once on the server, with nothing to install or update on each PC.
 - **Fully automatic.** Nobody types a file name or picks a folder. Files are named after the document, and sorted by
   the PC that printed them.
-- **Finds numbers in document names.** It can pull an invoice, order, case or patient number out of the document
-  name, and send anything without a number to a "check by hand" folder. It never guesses.
+- **Finds numbers in document names, or on the page.** It can pull an invoice, order, case or patient number out of
+  the document name, or out of the text printed on the page (for devices that name every print after the report),
+  and send anything without a number to a "check by hand" folder. It never guesses.
 - **PDF, JPG or PNG.** Real PDFs with sharp, searchable text, or images at the resolution you choose. You can set
   this per PC.
 - **No Ghostscript.** PrintToImage has its own PostScript engine. There's nothing extra to install, and no AGPL

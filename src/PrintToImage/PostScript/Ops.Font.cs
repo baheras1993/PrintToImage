@@ -435,9 +435,14 @@ public sealed partial class Interpreter
             acc.Reset();
         }
 
+        // The page text (a file number printed on the page): only what is really painted on the page;
+        // a cshow procedure paints the character itself (its own show is counted).
+        bool collectText = paint && o.CProc is null && Device.Override is null;
+
         for (int i = 0; i < glyphs.Count; i++)
         {
             var g = glyphs[i];
+            if (collectText) Device.AddText(UnicodeOf(g));
             var ctm = GS.CTM;
             if (o.KProc is not null && i > 0)
             {
@@ -560,8 +565,20 @@ public sealed partial class Interpreter
 
         Flush();
         acc?.Dispose();
+        if (collectText) Device.TextBreak();
         if (!o.Measure) GS.Path.MoveTo(cx, cy);
         return (cx - startX, cy - startY);
+    }
+
+    /// <summary>The Unicode character a glyph shows (as for searchable PDF text), or -1.</summary>
+    private int UnicodeOf(GlyphRef g)
+    {
+        try
+        {
+            if (FontObject(g.Font) is IEmbeddableFont ef) return ef.EmbedUnicode(g.Font, g.Name ?? "", g.Cid, g.ByCid);
+            return string.IsNullOrEmpty(g.Name) ? -1 : Encodings.ToUnicode(g.Name);
+        }
+        catch (PSError) { return -1; }
     }
 
     private sealed class TextRun

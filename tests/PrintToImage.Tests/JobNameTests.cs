@@ -197,4 +197,15 @@ public class OutputWriterTests : IDisposable
         Assert.Equal("42_OCT_20240102", OutputWriter.ApplyTemplate("{number}_{device}_{date}", r, "OCT", new DateTime(2024, 1, 2, 3, 4, 5)));
         Assert.Equal("Scan 42", OutputWriter.ApplyTemplate("{name}", r, "OCT", DateTime.Now));
     }
+
+    [Fact]
+    public void PagePlaceholderAndEmptyPartsTakeTheirSeparator()
+    {
+        var r = new ResolvedName("IOL-SRK-T", "PostScript %%Title", "IOL-SRK-T", null);
+        var t = new DateTime(2026, 10, 14, 14, 2, 29);
+        Assert.Equal("D1935_IOL-SRK-T_20261014_140229", OutputWriter.ApplyTemplate("{page}_{name}_{date}_{time}", r, "IOLMaster", t, "D1935"));
+        Assert.Equal("IOL-SRK-T_20261014_140229", OutputWriter.ApplyTemplate("{page}_{name}_{date}_{time}", r, "IOLMaster", t));
+        Assert.Equal("IOL-SRK-T_20261014", OutputWriter.ApplyTemplate("{name}_{number}_{date}", r, "IOLMaster", t));
+        Assert.Equal("IOL-SRK-T", OutputWriter.ApplyTemplate("{name} - {page}", r, "IOLMaster", t));
+    }
 }

@@ -33,12 +33,14 @@ server only needs the files in this folder. (The .NET runtime is built in as wel
 4. The name is cleaned: application prefixes such as `Microsoft Word - ` and original extensions such as `.docx`
    are removed, and characters not allowed in file names are replaced by `_`.
 5. The **file number** is taken from the name with a configurable regular expression (default: the first run of digits).
+   Optionally (`PageNumberRegex`) also from the text **printed on the page**, for devices that name every print after
+   the report rather than the patient (an IOLMaster prints `IOL-SRK-T` with the patient's ID on the page).
 6. The job is converted to PDF (or JPG) and placed:
 
 | Situation | Where it goes | File name |
 |---|---|---|
-| Name and file number found | `Output\<Device>\` | the cleaned name, e.g. `12345 Invoice.pdf` |
-| No name, or no file number in it | `Output\Unassigned\` | `<Device>_<yyyyMMdd_HHmmss>.pdf` |
+| Name and file number found (or, with `PageNumberRegex`, a number on the page) | `Output\<Device>\` | the cleaned name, e.g. `12345 Invoice.pdf` |
+| No name, or no file number in it (nor on the page) | `Output\Unassigned\` | `<Device>_<yyyyMMdd_HHmmss>.pdf` |
 | The job could not be converted | `Output\Failed\` | the raw job (`.prn`) plus any partial output |
 | Name already exists | same folder | ` (2)`, ` (3)` … added |
 | JPG/PNG, several pages | same folder | `name_p1.jpg`, `name_p2.jpg` … (one image per page) |
@@ -184,7 +186,8 @@ changing it. If the file is invalid the service does not start and the reason is
 | `JpgDpi`, `JpgQuality` | `300`, `90` | Resolution of JPG **and PNG** images; JPG quality 1–100 (PNG is always lossless) |
 | `Devices` | see below | Sender IP → device folder name |
 | `FileNumberRegex` | `\d+` | How to find the file number in the job name (see below) |
-| `FileNameTemplate` | `{name}` | Output file name: `{name}` cleaned name, `{number}` file number, `{device}`, `{date}` (yyyyMMdd), `{time}` (HHmmss) |
+| `PageNumberRegex` | `""` (off) | How to find a file number **printed on the page** (see below). Same groups as `FileNumberRegex` |
+| `FileNameTemplate` | `{name}` | Output file name: `{name}` cleaned name, `{number}` file number, `{page}` the number found on the page, `{device}`, `{date}` (yyyyMMdd), `{time}` (HHmmss). A part that is empty takes one separator with it (`{page}_{name}` without a number on the page → `IOL-SRK-T`) |
 | `StripPatterns` | Word/Excel/PowerPoint/Acrobat… prefixes | Regular expressions removed from the job name |
 | `StripExtensions` | `.pdf`, `.docx`, `.jpg`, … | Extensions removed from the end of the job name |
 | `FallbackCodePage` | `0` | Code page for non-English job names that are not UTF-8. `0` = the server's Windows language. Examples: `1256` Arabic, `1252` Western, `1251` Cyrillic |
@@ -258,6 +261,21 @@ addresses (or DHCP reservations), otherwise their jobs land in `UnknownDevice`.
 | `2024-03-01 Report 123456` (a date comes first) | `\\b\\d{6}\\b` | exactly 6 digits |
 | `INV-004512 Acme` | `INV-(?<num>\\d+)` | the `num` group is used |
 | `ID 98765` | `ID\\s*(\\d+)` | the first group is used |
+
+**PageNumberRegex**: a number printed on the page. Some devices name every print after the report, never the
+patient: an IOLMaster sends `IOL-SRK-T` or `MMT-Full`, with the patient's ID printed on the page. PrintToImage
+reads the text it draws and uses the first match. Example for file numbers such as `D1935` or `J3107` (a letter or
+two, then 3–7 digits; report codes such as `K1` are too short to match):
+
+```json
+"PageNumberRegex": "\\b[A-Za-z]{1,2}\\d{3,7}\\b",
+"FileNameTemplate": "{page}_{name}_{date}_{time}",
+```
+
+→ `Output\IOLMaster\D1935_IOL-SRK-T_20261014_140229.pdf`. A job whose name has no file number is filed under its
+device when the page has one; with neither it goes to **Unassigned** as before. Only PostScript jobs have page text
+(a job received as PDF is saved as received). The job log has a `PageNumber` column. In the settings app: **Job
+names → Number on the page**, with a box to try it on sample page text.
 
 To see what name and file number a saved job would give, run:
 `"C:\Program Files\PrintToImage\PrintToImage.exe" --check-name <job.prn>` (jobs are in the archive folder).

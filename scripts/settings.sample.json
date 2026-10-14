@@ -30,6 +30,7 @@
   },
 
   "FileNumberRegex": "\\d+",
+  "PageNumberRegex": "",
   "StripPatterns": [
     "^Microsoft (Office )?(Word|Excel|PowerPoint|Publisher|Visio) - ",
     "^(Adobe )?Acrobat( Reader)?( DC)? - ",

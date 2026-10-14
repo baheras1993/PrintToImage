@@ -37,7 +37,8 @@ public sealed class Settings
     public Dictionary<string, bool> DevicePdfOneFilePerPage { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public int JpgDpi { get; set; } = 300;
     public int JpgQuality { get; set; } = 90;
-    /// <summary>Placeholders: {name} cleaned document name, {number} file number, {device}, {date} yyyyMMdd, {time} HHmmss.</summary>
+    /// <summary>Placeholders: {name} cleaned document name, {number} file number, {page} file number found on the page
+    /// (PageNumberRegex), {device}, {date} yyyyMMdd, {time} HHmmss. A part left empty takes its separator with it.</summary>
     public string FileNameTemplate { get; set; } = "{name}";
     /// <summary>Windows account/group of the EMR import; gets access to the output folder (used by the installer and the settings app).</summary>
     public string EmrAccount { get; set; } = "";
@@ -65,6 +66,11 @@ public sealed class Settings
     /// <summary>Regex used to find the patient file number in the cleaned job name.
     /// If it has a group named "num" (or any capture group) that group is used, otherwise the whole match.</summary>
     public string FileNumberRegex { get; set; } = @"\d+";
+    /// <summary>Optional: regex for a file number printed ON THE PAGE (devices that name the print after the report,
+    /// e.g. an IOLMaster: "IOL-SRK-T", with the patient's ID on the page). Empty = off. Same groups as FileNumberRegex.
+    /// The first match in the job's text is used as {page}; a job whose name has no file number is still filed
+    /// under its device when the page has one.</summary>
+    public string PageNumberRegex { get; set; } = "";
     /// <summary>Regexes (case-insensitive) removed from the job name, e.g. application prefixes.</summary>
     public List<string> StripPatterns { get; set; } = new()
     {
@@ -102,6 +108,7 @@ public sealed class Settings
     public string WorkFolder { get; set; } = Path.Combine(DataRoot, "work");
     [JsonIgnore] public string LoadedFrom { get; private set; } = "";
     [JsonIgnore] public Regex FileNumber { get; private set; } = new(@"\d+");
+    [JsonIgnore] public Regex? PageNumber { get; private set; }
     [JsonIgnore] public IReadOnlyList<Regex> StripRegexes { get; private set; } = Array.Empty<Regex>();
 
     public static readonly JsonSerializerOptions JsonOptions = new()
@@ -163,6 +170,13 @@ public sealed class Settings
 
         try { FileNumber = new Regex(FileNumberRegex, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)); }
         catch (ArgumentException ex) { errors.Add($"FileNumberRegex is invalid: {ex.Message}"); }
+        PageNumberRegex ??= "";
+        PageNumber = null;
+        if (PageNumberRegex.Trim().Length > 0)
+        {
+            try { PageNumber = new Regex(PageNumberRegex, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)); }
+            catch (ArgumentException ex) { errors.Add($"PageNumberRegex is invalid: {ex.Message}"); }
+        }
 
         var strip = new List<Regex>();
         foreach (var p in StripPatterns)

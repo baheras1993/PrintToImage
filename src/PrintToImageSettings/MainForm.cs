@@ -45,6 +45,8 @@ internal sealed class MainForm : Form
     // Job names
     private readonly ComboBox _regexPreset = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 330 };
     private readonly TextBox _regex = new() { Dock = DockStyle.Fill, Font = new Font(FontFamily.GenericMonospace, 9.5f) };
+    private readonly TextBox _pageRegex = new() { Dock = DockStyle.Fill, Font = new Font(FontFamily.GenericMonospace, 9.5f) };
+    private readonly TextBox _testPage = new() { Dock = DockStyle.Fill, Text = "Last name: ID: Date of birth: D1935 27/05/1993 K1: 43.95 D" };
     private readonly TextBox _strip = new() { Dock = DockStyle.Fill, Multiline = true, ScrollBars = ScrollBars.Vertical, Height = 100, Font = new Font(FontFamily.GenericMonospace, 9f), WordWrap = false };
     private readonly TextBox _exts = new() { Dock = DockStyle.Fill };
     private readonly ComboBox _codePage = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 330 };
@@ -221,7 +223,7 @@ internal sealed class MainForm : Form
         Row(t, "PDF pages", _split);
         Row(t, "Image resolution (DPI)", Flow(_dpi, new Label { Text = "for JPG and PNG  (150 = smaller files, 300 = standard, 600 = very sharp)", AutoSize = true, ForeColor = Color.DimGray, Padding = new Padding(6, 6, 0, 0) }));
         Row(t, "JPG quality", Flow(_quality, new Label { Text = "1–100 (90 recommended). PNG is always lossless.", AutoSize = true, ForeColor = Color.DimGray, Padding = new Padding(6, 6, 0, 0) }));
-        Row(t, "File name", _template, hint: "{name} = document name   {number} = file number   {device}   {date} = yyyyMMdd   {time} = HHmmss");
+        Row(t, "File name", _template, hint: "{name} = document name   {number} = file number   {page} = number on the page   {device}   {date} = yyyyMMdd   {time} = HHmmss");
         Row(t, "", _templatePreview);
         Heading(t, "Access");
         Row(t, "Reader account", _emr, hint: "Windows user or group of the program that reads the files (e.g. an EMR or document system), e.g. OFFICE\\svc-import. Only administrators, the PrintToImage service and this account can open the output folder.");
@@ -364,8 +366,12 @@ internal sealed class MainForm : Form
         Row(t, "Find the file number", _regexPreset);
         Row(t, "Pattern (regular expression)", _regex,
             hint: "Used on the cleaned document name. A group named \"num\" (or the first group) is used if present, otherwise the whole match.\nNo match → the job goes to the \"no file number\" folder; PrintToImage never guesses.");
+        Row(t, "Number on the page", _pageRegex,
+            hint: "Optional. For devices that name the print after the report (an IOLMaster prints \"IOL-SRK-T\") but print the patient's number ON the page.\n" +
+                  @"The first match in the printed text is the {page} part of the file name, e.g. \b[A-Za-z]{1,2}\d{3,7}\b finds D1935 (not K1). Empty = off.");
         Heading(t, "Try it");
         Row(t, "Document name", _testName, hint: "Type a document name as a program would send it.");
+        Row(t, "Text on the page", _testPage, hint: "Optional: text printed on the page, to try \"Number on the page\".");
         Row(t, "Result", _testResult);
         Heading(t, "Cleaning the document name");
         Row(t, "Remove these parts", _strip, hint: "One regular expression per line (not case-sensitive), e.g. application names such as \"Microsoft Word - \".");
@@ -388,6 +394,8 @@ internal sealed class MainForm : Form
             UpdatePreviews();
         };
         _testName.TextChanged += (_, _) => UpdatePreviews();
+        _testPage.TextChanged += (_, _) => UpdatePreviews();
+        _pageRegex.TextChanged += (_, _) => UpdatePreviews();
         _strip.TextChanged += (_, _) => UpdatePreviews();
         _exts.TextChanged += (_, _) => UpdatePreviews();
         foreach (var c in CodePages) _codePage.Items.Add(c.Text);
@@ -517,6 +525,7 @@ internal sealed class MainForm : Form
             }
 
             _regex.Text = s.FileNumberRegex;
+            _pageRegex.Text = s.PageNumberRegex;
             int pi = Array.FindIndex(Presets, p => p.Regex == s.FileNumberRegex && p.Regex.Length > 0);
             _regexPreset.SelectedIndex = pi >= 0 ? pi : Presets.Length - 1;
             _strip.Text = string.Join(Environment.NewLine, s.StripPatterns);
@@ -594,6 +603,7 @@ internal sealed class MainForm : Form
         }
 
         s.FileNumberRegex = _regex.Text;
+        s.PageNumberRegex = _pageRegex.Text.Trim();
         s.StripPatterns = _strip.Lines.Select(l => l.TrimEnd('\r')).Where(l => l.Trim().Length > 0).ToList();
         s.StripExtensions = _exts.Text.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
             .Select(e => e.StartsWith('.') ? e : "." + e).ToList();
@@ -766,12 +776,13 @@ internal sealed class MainForm : Form
         if (_loading) return;
         string ext = _png.Checked ? ".png" : _jpg.Checked ? ".jpg" : ".pdf";
         var sample = new ResolvedName("Microsoft Word - 12345 Report.docx", "", "12345 Report", "12345");
-        try { _templatePreview.Text = "Example: " + OutputWriter.ApplyTemplate(_template.Text, sample, "Reception", DateTime.Now) + ext; }
+        try { _templatePreview.Text = "Example: " + OutputWriter.ApplyTemplate(_template.Text, sample, "Reception", DateTime.Now, "D1935") + ext; }
         catch (Exception) { _templatePreview.Text = ""; }
 
         var test = new Settings
         {
             FileNumberRegex = _regex.Text,
+            PageNumberRegex = _pageRegex.Text.Trim(),
             StripPatterns = _strip.Lines.Where(l => l.Trim().Length > 0).ToList(),
             StripExtensions = _exts.Text.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(e => e.StartsWith('.') ? e : "." + e).ToList(),
             FileNameTemplate = _template.Text,
@@ -785,10 +796,13 @@ internal sealed class MainForm : Form
         }
         var r = JobNameResolver.Resolve(new (string, string?)[] { ("test", _testName.Text) }, test);
         string device = _devices.Rows.Cast<DataGridViewRow>().Where(x => !x.IsNewRow).Select(x => x.Cells["Name"].Value as string).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)) ?? "Reception";
-        _testResult.ForeColor = r.IsAssigned ? Color.DarkGreen : Color.DarkOrange;
-        _testResult.Text = r.IsAssigned
-            ? $"Cleaned name : {r.CleanName}\nFile number  : {r.FileNumber}\nSaved as     : {Path.Combine(device, OutputWriter.ApplyTemplate(test.FileNameTemplate, r, device, DateTime.Now) + ext)}"
-            : $"Cleaned name : {r.CleanName ?? "(none)"}\nFile number  : (none)\nSaved as     : {Path.Combine(_unassigned.Text, device + "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ext)}";
+        string? page = test.PageNumber is { } prx && _testPage.Text.Trim().Length > 0 ? JobNameResolver.ExtractFileNumber(_testPage.Text, prx) : null;
+        bool assigned = r.IsAssigned || page is not null;
+        string pageLine = test.PageNumber is null ? "" : $"\nOn the page  : {page ?? "(none)"}";
+        _testResult.ForeColor = assigned ? Color.DarkGreen : Color.DarkOrange;
+        _testResult.Text = assigned
+            ? $"Cleaned name : {r.CleanName}\nFile number  : {r.FileNumber ?? "(none)"}{pageLine}\nSaved as     : {Path.Combine(device, OutputWriter.ApplyTemplate(test.FileNameTemplate, r, device, DateTime.Now, page) + ext)}"
+            : $"Cleaned name : {r.CleanName ?? "(none)"}\nFile number  : (none){pageLine}\nSaved as     : {Path.Combine(_unassigned.Text, device + "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ext)}";
     }
 
     // ------------------------------------------------------------------ service & jobs
